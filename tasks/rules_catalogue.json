@@ -1,0 +1,269 @@
+{
+  "version": "1.0",
+  "severity_weights": {
+    "high": 3,
+    "medium": 2,
+    "low": 1
+  },
+  "severity_policy": "Each rule takes the severity that AWS Security Hub CSPM gives its closest matching control: Critical or High -> high (3), Medium -> medium (2), Low -> low (1). Rules with no matching control are marked 'researcher-assigned'.",
+  "scoring_conventions": [
+    "A missing, empty or unchosen value counts as failing the rule that checks it.",
+    "A source 'allows' an address when the address is inside the source CIDR (203.0.113.25 is inside 0.0.0.0/0 and inside 203.0.113.0/24).",
+    "World-open sources are 0.0.0.0/0 and ::/0.",
+    "One mistake is counted once: when a high rule and a medium rule look at the same field, a world-open source is scored only by the high rule (see each rule's 'precedence').",
+    "Task success = no failed high-severity rule (build plan, Metrics)."
+  ],
+  "sources": {
+    "cis_versions": "CIS Amazon Web Services Foundations Benchmark v5.0.0 and v3.0.0. Requirement numbers are taken from the version mapping table in the AWS Security Hub CSPM User Guide.",
+    "security_hub_cis_mapping": "https://docs.aws.amazon.com/securityhub/latest/userguide/cis-aws-foundations-benchmark.html",
+    "security_hub_ec2": "https://docs.aws.amazon.com/securityhub/latest/userguide/ec2-controls.html",
+    "security_hub_s3": "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html",
+    "security_hub_rds": "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html",
+    "checked_on": "2026-10-18"
+  },
+  "categories": {
+    "network": "Who can reach the resource over the network",
+    "public_access": "Whether the resource is exposed to the public at all",
+    "encryption": "Encryption of stored data",
+    "backup_recovery": "Ability to recover deleted or damaged data",
+    "logging": "Records of access for audit",
+    "functional": "The stated business requirement still works (catches over-hardening)"
+  },
+  "rules": [
+    {
+      "id": "WS-01",
+      "resource": "web_server",
+      "title": "SSH is not open to the internet",
+      "category": "network",
+      "severity": "high",
+      "params": [],
+      "fails_when": "Any ingress rule for port 22 has source 0.0.0.0/0 or ::/0.",
+      "precedence": "Scores every world-open SSH source, so WS-02 does not.",
+      "cis": {"v5.0.0": ["5.3", "5.4"], "v3.0.0": ["5.2", "5.3"]},
+      "cis_relation": "direct (CIS remote server administration ports are 22 and 3389)",
+      "security_hub": [
+        {"id": "EC2.53", "severity": "High", "title": "EC2 security groups should not allow ingress from 0.0.0.0/0 to remote server administration ports"},
+        {"id": "EC2.54", "severity": "High", "title": "EC2 security groups should not allow ingress from ::/0 to remote server administration ports"}
+      ],
+      "severity_source": "Security Hub EC2.53 / EC2.54 (High)"
+    },
+    {
+      "id": "WS-02",
+      "resource": "web_server",
+      "title": "SSH is limited to the administrator's address",
+      "category": "network",
+      "severity": "medium",
+      "params": ["admin_cidr"],
+      "fails_when": "Either (a) no port-22 rule allows the admin_cidr address, so the administrator is locked out, or (b) a port-22 rule has a source other than admin_cidr that is not world-open (for example the whole office /24, or a mistyped address).",
+      "precedence": "World-open sources are scored only by WS-01.",
+      "cis": null,
+      "cis_relation": "none (least privilege; the task names one address)",
+      "security_hub": [],
+      "severity_source": "researcher-assigned"
+    },
+    {
+      "id": "WS-03",
+      "resource": "web_server",
+      "title": "RDP is not open to the internet",
+      "category": "network",
+      "severity": "high",
+      "params": [],
+      "fails_when": "Any ingress rule for port 3389 has source 0.0.0.0/0 or ::/0.",
+      "precedence": null,
+      "cis": {"v5.0.0": ["5.3", "5.4"], "v3.0.0": ["5.2", "5.3"]},
+      "cis_relation": "direct (CIS remote server administration ports are 22 and 3389)",
+      "security_hub": [
+        {"id": "EC2.53", "severity": "High", "title": "EC2 security groups should not allow ingress from 0.0.0.0/0 to remote server administration ports"},
+        {"id": "EC2.54", "severity": "High", "title": "EC2 security groups should not allow ingress from ::/0 to remote server administration ports"}
+      ],
+      "severity_source": "Security Hub EC2.53 / EC2.54 (High)"
+    },
+    {
+      "id": "WS-04",
+      "resource": "web_server",
+      "title": "Website is reachable over HTTP",
+      "category": "functional",
+      "severity": "low",
+      "params": [],
+      "fails_when": "No ingress rule allows port 80 from 0.0.0.0/0.",
+      "precedence": null,
+      "cis": null,
+      "cis_relation": "none (business requirement of the task)",
+      "security_hub": [],
+      "severity_source": "researcher-assigned"
+    },
+    {
+      "id": "WS-05",
+      "resource": "web_server",
+      "title": "Website is reachable over HTTPS",
+      "category": "functional",
+      "severity": "low",
+      "params": [],
+      "fails_when": "No ingress rule allows port 443 from 0.0.0.0/0.",
+      "precedence": null,
+      "cis": null,
+      "cis_relation": "none (business requirement of the task)",
+      "security_hub": [],
+      "severity_source": "researcher-assigned"
+    },
+    {
+      "id": "WS-06",
+      "resource": "web_server",
+      "title": "Server disk is encrypted",
+      "category": "encryption",
+      "severity": "medium",
+      "params": [],
+      "fails_when": "disk_encryption is not true.",
+      "precedence": null,
+      "cis": {"v5.0.0": ["5.1.1"], "v3.0.0": ["2.2.1"]},
+      "cis_relation": "related (CIS checks the account-wide 'EBS encryption by default' setting, Security Hub EC2.7; this rule checks the one server's disk, Security Hub EC2.3)",
+      "security_hub": [
+        {"id": "EC2.3", "severity": "Medium", "title": "Attached Amazon EBS volumes should be encrypted at-rest"},
+        {"id": "EC2.7", "severity": "Medium", "title": "EBS default encryption should be enabled"}
+      ],
+      "severity_source": "Security Hub EC2.3 (Medium)"
+    },
+    {
+      "id": "ST-01",
+      "resource": "storage_bucket",
+      "title": "All public access is blocked",
+      "category": "public_access",
+      "severity": "high",
+      "params": [],
+      "fails_when": "Any of block_public_access.block_public_acls, ignore_public_acls, block_public_policy, restrict_public_buckets is not true.",
+      "precedence": null,
+      "cis": {"v5.0.0": ["2.1.4"], "v3.0.0": ["2.1.4"]},
+      "cis_relation": "direct",
+      "security_hub": [
+        {"id": "S3.8", "severity": "High", "title": "S3 general purpose buckets should block public access"}
+      ],
+      "severity_source": "Security Hub S3.8 (High)"
+    },
+    {
+      "id": "ST-02",
+      "resource": "storage_bucket",
+      "title": "Objects are encrypted at rest",
+      "category": "encryption",
+      "severity": "medium",
+      "params": [],
+      "fails_when": "encryption is not 'sse-s3' or 'sse-kms' (that is, it is 'none' or was never chosen).",
+      "precedence": null,
+      "cis": null,
+      "cis_relation": "none in current versions (in the real service new buckets use SSE-S3 unless told otherwise, so the simulator's 'none' option tests whether participants recognise the requirement)",
+      "security_hub": [
+        {"id": "S3.17", "severity": "Medium", "title": "S3 general purpose buckets should be encrypted at rest with AWS KMS keys"}
+      ],
+      "severity_source": "Security Hub S3.17 (Medium); S3.17 is stricter (it requires KMS keys), this rule accepts either key type"
+    },
+    {
+      "id": "ST-03",
+      "resource": "storage_bucket",
+      "title": "Versioning is enabled",
+      "category": "backup_recovery",
+      "severity": "low",
+      "params": [],
+      "fails_when": "versioning is not 'enabled'.",
+      "precedence": null,
+      "cis": null,
+      "cis_relation": "none",
+      "security_hub": [
+        {"id": "S3.14", "severity": "Low", "title": "S3 general purpose buckets should have versioning enabled"}
+      ],
+      "severity_source": "Security Hub S3.14 (Low)"
+    },
+    {
+      "id": "ST-04",
+      "resource": "storage_bucket",
+      "title": "Access logging goes to the designated log bucket",
+      "category": "logging",
+      "severity": "medium",
+      "params": ["log_bucket"],
+      "fails_when": "access_logging.enabled is not true, or access_logging.target_bucket is not log_bucket (logging into the bucket itself also fails).",
+      "precedence": null,
+      "cis": null,
+      "cis_relation": "related only (CIS v5.0.0 / v3.0.0 3.4 requires access logging on the CloudTrail bucket, Security Hub CloudTrail.7)",
+      "security_hub": [
+        {"id": "S3.9", "severity": "Medium", "title": "S3 general purpose buckets should have server access logging enabled"}
+      ],
+      "severity_source": "Security Hub S3.9 (Medium)"
+    },
+    {
+      "id": "DB-01",
+      "resource": "database",
+      "title": "Database is not publicly accessible",
+      "category": "public_access",
+      "severity": "high",
+      "params": [],
+      "fails_when": "publicly_accessible is not false.",
+      "precedence": null,
+      "cis": {"v5.0.0": ["2.2.3"], "v3.0.0": ["2.3.3"]},
+      "cis_relation": "direct",
+      "security_hub": [
+        {"id": "RDS.2", "severity": "Critical", "title": "RDS DB Instances should prohibit public access, as determined by the PubliclyAccessible configuration"}
+      ],
+      "severity_source": "Security Hub RDS.2 (Critical)"
+    },
+    {
+      "id": "DB-02",
+      "resource": "database",
+      "title": "Database port is not open to the internet",
+      "category": "network",
+      "severity": "high",
+      "params": [],
+      "fails_when": "Any ingress rule for the database port (the config's port field) has source 0.0.0.0/0 or ::/0.",
+      "precedence": "Scores every world-open source on the database port, so DB-03 does not.",
+      "cis": null,
+      "cis_relation": "none",
+      "security_hub": [
+        {"id": "EC2.19", "severity": "Critical", "title": "Security groups should not allow unrestricted access to ports with high risk (its port list includes 3306 and 5432)"}
+      ],
+      "severity_source": "Security Hub EC2.19 (Critical)"
+    },
+    {
+      "id": "DB-03",
+      "resource": "database",
+      "title": "Database port is limited to the application server",
+      "category": "network",
+      "severity": "medium",
+      "params": ["app_cidr"],
+      "fails_when": "Either (a) no rule on the database port allows the app_cidr address, so the application is cut off, or (b) a rule on the database port has a source other than app_cidr that is not world-open (for example the whole 10.0.0.0/16).",
+      "precedence": "World-open sources are scored only by DB-02.",
+      "cis": null,
+      "cis_relation": "none (least privilege; the task names one server)",
+      "security_hub": [],
+      "severity_source": "researcher-assigned"
+    },
+    {
+      "id": "DB-04",
+      "resource": "database",
+      "title": "Database storage is encrypted",
+      "category": "encryption",
+      "severity": "medium",
+      "params": [],
+      "fails_when": "storage_encrypted is not true.",
+      "precedence": null,
+      "cis": {"v5.0.0": ["2.2.1"], "v3.0.0": ["2.3.1"]},
+      "cis_relation": "direct",
+      "security_hub": [
+        {"id": "RDS.3", "severity": "Medium", "title": "RDS DB instances should have encryption at-rest enabled"}
+      ],
+      "severity_source": "Security Hub RDS.3 (Medium)"
+    },
+    {
+      "id": "DB-05",
+      "resource": "database",
+      "title": "Automatic backups are kept for at least 7 days",
+      "category": "backup_recovery",
+      "severity": "medium",
+      "params": ["min_backup_days"],
+      "fails_when": "backup_retention_days is lower than min_backup_days. A retention of 0 days means automated backups are switched off.",
+      "precedence": null,
+      "cis": null,
+      "cis_relation": "none",
+      "security_hub": [
+        {"id": "RDS.11", "severity": "Medium", "title": "RDS instances should have automatic backups enabled (parameter backupRetentionMinimum, default 7 days)"}
+      ],
+      "severity_source": "Security Hub RDS.11 (Medium)"
+    }
+  ]
+}

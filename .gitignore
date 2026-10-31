@@ -1,0 +1,21 @@
+# API keys: never commit
+.env
+
+# Participant data and anything computed from it: never commit
+logs/
+analysis/results/
+analysis/synthetic_logs/
+analysis/synthetic_results/
+llm/results/
+
+# Other people's code fetched for analysis only; not ours to redistribute
+dataset/raw/
+# Named projects' security failures: we publish only aggregate results (dataset/README.md)
+dataset/results/case_candidates.csv
+dataset/results/worksheets/
+dataset/results/cases_summary.md
+dataset/cases/case_*.json
+
+# Python
+__pycache__/
+*.pyc

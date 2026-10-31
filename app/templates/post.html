@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Last questions - Cloud Setup{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Three last questions</h1>
+  <form class="panel" method="post" action="{{ url_for('post') }}">
+    {% if error %}<p class="form-errors" role="alert">{{ error }}</p>{% endif %}
+    {% for key, question, low, high in questions %}
+    <fieldset class="choices likert">
+      <legend>{{ question }}</legend>
+      <div class="likert-row">
+        <span class="likert-end">{{ low }}</span>
+        {% for value in range(1, 6) %}
+        <label class="likert-option"><input type="radio" name="{{ key }}" value="{{ value }}" required><span>{{ value }}</span></label>
+        {% endfor %}
+        <span class="likert-end">{{ high }}</span>
+      </div>
+    </fieldset>
+    {% endfor %}
+    <label class="field">
+      <span>Anything else you would like to tell us? (optional)</span>
+      <textarea name="comments" rows="4" maxlength="1000"></textarea>
+    </label>
+    <div class="actions"><button type="submit" class="btn-primary">Finish</button></div>
+  </form>
+</div>
+{% endblock %}

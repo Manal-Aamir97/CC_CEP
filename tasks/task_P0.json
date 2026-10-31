@@ -1,0 +1,77 @@
+{
+  "task_id": "P0",
+  "set": "practice",
+  "pair": null,
+  "order_in_set": 0,
+  "scored": false,
+  "resource": "web_server",
+  "participant": {
+    "title": "Practice: internal test server",
+    "scenario": "This practice task is not scored. Use it to get to know the form before the real tasks start. You are creating a small server that the team uses for internal testing.",
+    "requirements": [
+      {"id": "R1", "text": "Rename the server to practice-server."},
+      {"id": "R2", "text": "Choose the t3.small instance type."},
+      {"id": "R3", "text": "Add an inbound rule that allows TCP port 8080 from the internal network 10.0.0.0/16."},
+      {"id": "R4", "text": "Submit the form when you are done."}
+    ],
+    "notes": "There are no wrong answers in this practice task."
+  },
+  "display": {
+    "title": "Practice: a test server",
+    "scenario": "This practice task is not scored. Use it to get to know the form before the real tasks start. You are setting up a small server, a computer that a team uses for testing.",
+    "requirements": [
+      {
+        "id": "R1",
+        "text": "Change the server's name to practice-server."
+      },
+      {
+        "id": "R2",
+        "text": "Choose the server size with 2 processors and 2 GB of memory (t3.small)."
+      },
+      {
+        "id": "R3",
+        "text": "Add a row for the team's network: choose \"Other\", type the service number 8080, keep \"Only this address\" and type 10.0.0.0/16."
+      },
+      {
+        "id": "R4",
+        "text": "Submit the form when you are done."
+      }
+    ],
+    "notes": "There are no wrong answers in this practice task."
+  },
+  "scoring": {
+    "rules": [],
+    "params": {},
+    "requirement_map": {}
+  },
+  "initial_config": {
+    "resource": "web_server",
+    "name": "test-server",
+    "instance_type": "t2.micro",
+    "os": "ubuntu-22.04",
+    "ingress": [
+      {"port": 80, "protocol": "tcp", "source": "10.0.0.0/16"}
+    ],
+    "disk_encryption": true,
+    "public_ip": false
+  },
+  "design": {
+    "traps": [],
+    "decision_points": [],
+    "secure_defaults": [],
+    "unscored_fields": ["name", "instance_type", "os", "ingress", "disk_encryption", "public_ip"],
+    "notes": "The practice task only asks for neutral changes (name, size, one internal rule), so it teaches the controls without pointing at any security setting. Its starting values are all secure; this is the same for both conditions."
+  },
+  "reference_solution": {
+    "resource": "web_server",
+    "name": "practice-server",
+    "instance_type": "t3.small",
+    "os": "ubuntu-22.04",
+    "ingress": [
+      {"port": 80, "protocol": "tcp", "source": "10.0.0.0/16"},
+      {"port": 8080, "protocol": "tcp", "source": "10.0.0.0/16"}
+    ],
+    "disk_encryption": true,
+    "public_ip": false
+  }
+}

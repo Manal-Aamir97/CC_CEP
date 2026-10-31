@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "projects_scanned": 369,
+    "scan_dates": [
+      "2022-10-13",
+      "2022-10-13"
+    ],
+    "source_commit": "4fd6c747c7fb9d8d4fb2734f4e4da423e128f17d",
+    "mapping_checked_on": "2026-10-28"
+  },
+  "rules": {
+    "WS-01": {
+      "checks": [
+        "CKV_AWS_24"
+      ],
+      "resource_checks": 3338,
+      "resource_checks_failed": 331,
+      "resource_failure_rate": 0.0992,
+      "projects_with_resource": 205,
+      "projects_with_failure": 99,
+      "project_failure_rate": 0.4829,
+      "note": "Security group allows port 22 from 0.0.0.0/0 (SecurityGroupUnrestrictedIngress22)."
+    },
+    "WS-06": {
+      "checks": [
+        "CKV_AWS_3",
+        "CKV_AWS_8"
+      ],
+      "resource_checks": 1015,
+      "resource_checks_failed": 889,
+      "resource_failure_rate": 0.8759,
+      "projects_with_resource": 153,
+      "projects_with_failure": 148,
+      "project_failure_rate": 0.9673,
+      "note": "Related, not identical: CKV_AWS_3 covers stand-alone aws_ebs_volume resources and CKV_AWS_8 launch-configuration volumes; our rule covers a server's root disk."
+    },
+    "ST-01": {
+      "checks": [
+        "CKV_AWS_53",
+        "CKV_AWS_54",
+        "CKV_AWS_55",
+        "CKV2_AWS_6"
+      ],
+      "resource_checks": 2338,
+      "resource_checks_failed": 1256,
+      "resource_failure_rate": 0.5372,
+      "projects_with_resource": 358,
+      "projects_with_failure": 297,
+      "project_failure_rate": 0.8296,
+      "note": "Block Public Access switches and presence of a public access block. Their scan did not include restrict_public_buckets (CKV_AWS_56)."
+    },
+    "ST-02": {
+      "checks": [
+        "CKV_AWS_19"
+      ],
+      "resource_checks": 1441,
+      "resource_checks_failed": 1131,
+      "resource_failure_rate": 0.7849,
+      "projects_with_resource": 358,
+      "projects_with_failure": 287,
+      "project_failure_rate": 0.8017,
+      "note": "S3 server-side encryption at rest (any key type, like our rule)."
+    },
+    "ST-04": {
+      "checks": [
+        "CKV_AWS_18"
+      ],
+      "resource_checks": 1435,
+      "resource_checks_failed": 1259,
+      "resource_failure_rate": 0.8774,
+      "projects_with_resource": 357,
+      "projects_with_failure": 337,
+      "project_failure_rate": 0.944,
+      "note": "S3 server access logging enabled (Checkov does not check which target bucket)."
+    },
+    "DB-01": {
+      "checks": [
+        "CKV_AWS_17"
+      ],
+      "resource_checks": 238,
+      "resource_checks_failed": 23,
+      "resource_failure_rate": 0.0966,
+      "projects_with_resource": 79,
+      "projects_with_failure": 17,
+      "project_failure_rate": 0.2152,
+      "note": "aws_db_instance / aws_rds_cluster_instance not publicly accessible."
+    },
+    "DB-04": {
+      "checks": [
+        "CKV_AWS_16"
+      ],
+      "resource_checks": 202,
+      "resource_checks_failed": 147,
+      "resource_failure_rate": 0.7277,
+      "projects_with_resource": 71,
+      "projects_with_failure": 59,
+      "project_failure_rate": 0.831,
+      "note": "aws_db_instance storage encrypted."
+    }
+  }
+}

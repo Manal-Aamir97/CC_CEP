@@ -1,0 +1,103 @@
+{
+  "task_id": "A1",
+  "set": "A",
+  "pair": 1,
+  "order_in_set": 1,
+  "scored": true,
+  "resource": "web_server",
+  "participant": {
+    "title": "Web server for Crumb & Co. Bakery",
+    "scenario": "Crumb & Co. is a small bakery that is moving its online ordering website to the cloud. You look after the bakery's IT. Create the Linux web server that will host the website. The form has been pre-filled with the settings from the template the bakery used for its previous server.",
+    "requirements": [
+      {"id": "R1", "text": "Customers anywhere on the internet must be able to open the website over HTTP (port 80) and HTTPS (port 443)."},
+      {"id": "R2", "text": "Only you may connect to the server over SSH (port 22), and only from the bakery office's public IP address, 203.0.113.25."},
+      {"id": "R3", "text": "Remote Desktop (RDP, port 3389) must not be reachable from the internet."},
+      {"id": "R4", "text": "The server's disk must be encrypted."}
+    ],
+    "notes": "Any instance type and any Linux operating system is acceptable."
+  },
+  "display": {
+    "title": "Web server for Crumb & Co. Bakery",
+    "scenario": "Crumb & Co. is a small bakery that is moving its online ordering website to the cloud. A web server is a computer, always switched on, that shows a website to visitors. You look after the bakery's computers. Set up the web server using the form below. The form is already filled in with the settings from the bakery's previous server.",
+    "requirements": [
+      {
+        "id": "R1",
+        "text": "Customers anywhere on the internet must be able to open the website, through both http:// and https:// addresses."
+      },
+      {
+        "id": "R2",
+        "text": "Only you may log in remotely to manage the server, and only from the bakery office. The office's internet address is 203.0.113.25."
+      },
+      {
+        "id": "R3",
+        "text": "Nobody on the internet may use remote desktop on the server."
+      },
+      {
+        "id": "R4",
+        "text": "The server's disk must be encrypted (scrambled so that it cannot be read without a key)."
+      }
+    ],
+    "notes": "Any server size and any operating system is fine."
+  },
+  "scoring": {
+    "rules": ["WS-01", "WS-02", "WS-03", "WS-04", "WS-05", "WS-06"],
+    "params": {"admin_cidr": "203.0.113.25/32"},
+    "requirement_map": {
+      "R1": ["WS-04", "WS-05"],
+      "R2": ["WS-01", "WS-02"],
+      "R3": ["WS-03"],
+      "R4": ["WS-06"]
+    }
+  },
+  "initial_config": {
+    "resource": "web_server",
+    "name": "crumb-orders-web",
+    "instance_type": "t2.micro",
+    "os": "ubuntu-22.04",
+    "ingress": [
+      {"port": 22, "protocol": "tcp", "source": "0.0.0.0/0"},
+      {"port": 80, "protocol": "tcp", "source": "0.0.0.0/0"},
+      {"port": 443, "protocol": "tcp", "source": "0.0.0.0/0"}
+    ],
+    "disk_encryption": false,
+    "public_ip": true
+  },
+  "design": {
+    "traps": [
+      {
+        "id": "T1",
+        "path": "ingress[port=22].source",
+        "value": "0.0.0.0/0",
+        "rule": "WS-01",
+        "basis": "When the real EC2 launch wizard creates a new security group it adds an SSH (Linux) or RDP (Windows) rule open to all IP addresses, which the user is expected to narrow (AWS EC2 User Guide, Reference for Amazon EC2 instance configuration parameters)."
+      },
+      {
+        "id": "T2",
+        "path": "disk_encryption",
+        "value": false,
+        "rule": "WS-06",
+        "basis": "Unless 'EBS encryption by default' has been switched on for the account, new EC2 volumes are created unencrypted (Security Hub EC2.3 and EC2.7 flag this)."
+      }
+    ],
+    "decision_points": [],
+    "secure_defaults": [
+      {"path": "ingress[port=80].source", "rule": "WS-04"},
+      {"path": "ingress[port=443].source", "rule": "WS-05"},
+      {"path": null, "rule": "WS-03", "note": "No port-3389 rule in the starting form; the rule fails only if the participant adds one."}
+    ],
+    "unscored_fields": ["name", "instance_type", "os", "public_ip"]
+  },
+  "reference_solution": {
+    "resource": "web_server",
+    "name": "crumb-orders-web",
+    "instance_type": "t2.micro",
+    "os": "ubuntu-22.04",
+    "ingress": [
+      {"port": 22, "protocol": "tcp", "source": "203.0.113.25/32"},
+      {"port": 80, "protocol": "tcp", "source": "0.0.0.0/0"},
+      {"port": 443, "protocol": "tcp", "source": "0.0.0.0/0"}
+    ],
+    "disk_encryption": true,
+    "public_ip": true
+  }
+}

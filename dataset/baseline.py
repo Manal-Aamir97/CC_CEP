@@ -1,0 +1,169 @@
+"""Real-world human baseline from Verdet et al.'s October 2022 Checkov results.
+
+    python -m dataset.baseline                  # writes dataset/results/baseline.json and baseline.md
+    python -m dataset.baseline --show-policies  # print their description of every mapped check
+
+For each of our rules (via checkov_to_rules.json) it reports how often human-written AWS
+Terraform failed the matching Checkov checks, per resource check and per project.
+"""
+import argparse
+import csv
+import json
+import re
+from collections import Counter
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+RAW = HERE / "raw" / "verdet"
+RESULTS = HERE / "results"
+MAPPING = HERE / "checkov_to_rules.json"
+RESULT_COLUMNS = ["Repository Full Name", "Passed Check Count", "Failed Check Count",
+                  "Passed Checks", "Failed Checks", "Check Date"]
+CHECK_ID = re.compile(r"CKV2?_AWS_\d+")
+
+csv.field_size_limit(2**31 - 1)  # the check lists are very long fields
+
+
+def _ids(field):
+    return [part.strip() for part in (field or "").split(";") if part.strip()]
+
+
+def read_results(path):
+    """One entry per project: Counters of passed and failed check IDs (one count per resource)."""
+    projects, problems = [], []
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        if header != RESULT_COLUMNS:
+            raise ValueError(f"unexpected header in {path}: {header}")
+        for line, row in enumerate(reader, start=2):
+            if len(row) != len(RESULT_COLUMNS):
+                problems.append(f"line {line}: {len(row)} columns, expected {len(RESULT_COLUMNS)}")
+                continue
+            passed, failed = Counter(_ids(row[3])), Counter(_ids(row[4]))
+            if sum(passed.values()) != int(row[1] or 0) or sum(failed.values()) != int(row[2] or 0):
+                problems.append(f"line {line} ({row[0]}): check lists do not match the counts")
+            projects.append({"repo": row[0], "passed": passed, "failed": failed, "date": row[5]})
+    return projects, problems
+
+
+def read_policy_descriptions(path):
+    """Checkov ID -> list of 'POLxx check_name: description' strings from their policy file."""
+    found = {}
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            for check in CHECK_ID.findall(row.get("Code_Checkov") or ""):
+                found.setdefault(check, []).append(
+                    f"{row.get('POLICY_ID')} {row.get('check_name')}: {row.get('check_description')}")
+    return found
+
+
+def mapping_problems(mapping, descriptions):
+    problems = []
+    for rule, entry in mapping["rules"].items():
+        for check in entry["checks"]:
+            if check not in descriptions:
+                problems.append(f"{rule}: {check} is not in Verdet et al.'s policy file")
+    for check in mapping["excluded_checks"]:
+        if any(check in entry["checks"] for entry in mapping["rules"].values()):
+            problems.append(f"{check} is both mapped and excluded")
+    return problems
+
+
+def compute(projects, mapping):
+    rows = {}
+    for rule, entry in mapping["rules"].items():
+        checks = list(entry["checks"])
+        passed = sum(p["passed"][c] for p in projects for c in checks)
+        failed = sum(p["failed"][c] for p in projects for c in checks)
+        applicable = [p for p in projects if any(p["passed"][c] or p["failed"][c] for c in checks)]
+        failing = [p for p in applicable if any(p["failed"][c] for c in checks)]
+        rows[rule] = {
+            "checks": checks,
+            "resource_checks": passed + failed,
+            "resource_checks_failed": failed,
+            "resource_failure_rate": round(failed / (passed + failed), 4) if passed + failed else None,
+            "projects_with_resource": len(applicable),
+            "projects_with_failure": len(failing),
+            "project_failure_rate": round(len(failing) / len(applicable), 4) if applicable else None,
+            "note": entry.get("note", ""),
+        }
+    return rows
+
+
+def _pct(value):
+    return "-" if value is None else f"{100 * value:.1f}%"
+
+
+def write_outputs(rows, projects, mapping, manifest):
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    dates = sorted(p["date"][:10] for p in projects if p["date"])
+    meta = {"projects_scanned": len(projects), "scan_dates": [dates[0], dates[-1]] if dates else None,
+            "source_commit": manifest.get("commit"), "mapping_checked_on": mapping["checked_on"]}
+    (RESULTS / "baseline.json").write_text(json.dumps({"meta": meta, "rules": rows}, indent=2), encoding="utf-8")
+
+    if not dates:
+        when = ""
+    elif dates[0] == dates[-1]:
+        when = f"on {dates[0]} "
+    else:
+        when = f"from {dates[0]} to {dates[-1]} "
+    lines = [
+        "# Real-world human baseline (Verdet et al. 2025)",
+        "",
+        "> Generated by `python -m dataset.baseline`. Do not edit by hand.",
+        "",
+        f"Human-written AWS Terraform from {len(projects)} open-source projects, scanned with Checkov {when}"
+        "(before ChatGPT's release on 2022-11-30). Source: Verdet et al., Empirical Software Engineering "
+        "30(3):74, 2025, https://doi.org/10.1007/s10664-024-10610-0.",
+        "",
+        "| Our rule | Checkov checks | Resource checks | Failed | Failure rate | Projects with the resource | Projects with a failure | Project rate |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for rule, r in rows.items():
+        lines.append(f"| {rule} | {', '.join(r['checks'])} | {r['resource_checks']} | {r['resource_checks_failed']} | "
+                     f"{_pct(r['resource_failure_rate'])} | {r['projects_with_resource']} | "
+                     f"{r['projects_with_failure']} | {_pct(r['project_failure_rate'])} |")
+    lines += ["", "Rules not covered by their scan: " +
+              ", ".join(f"{rule} ({why})" for rule, why in mapping["not_covered"].items()) + ".",
+              "", "Checks deliberately left out:", ""]
+    lines += [f"- {check}: {why}" for check, why in mapping["excluded_checks"].items()]
+    lines += ["", "Caveat: Checkov 2.2.21 judged these files, not our validator. The numbers are "
+              "comparable in kind but not identical in definition to the study's validator scores."]
+    (RESULTS / "baseline.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--show-policies", action="store_true",
+                        help="print Verdet et al.'s description of every mapped check")
+    args = parser.parse_args(argv)
+
+    mapping = json.loads(MAPPING.read_text(encoding="utf-8"))
+    descriptions = read_policy_descriptions(RAW / "policies-aws-final.csv")
+    problems = mapping_problems(mapping, descriptions)
+    if args.show_policies:
+        for rule, entry in mapping["rules"].items():
+            for check, evidence in entry["checks"].items():
+                for text in descriptions.get(check, ["(not in their policy file)"]):
+                    print(f"{rule}  {check} [{evidence}]  {text}")
+    if problems:
+        print("Mapping problems:\n  - " + "\n  - ".join(problems))
+        return 1
+
+    projects, read_issues = read_results(RAW / "results.csv")
+    for issue in read_issues:
+        print(f"warning: {issue}")
+    manifest_path = RAW / "MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    rows = compute(projects, mapping)
+    write_outputs(rows, projects, mapping, manifest)
+    for rule, r in rows.items():
+        print(f"{rule}: {_pct(r['resource_failure_rate'])} of {r['resource_checks']} resource checks failed; "
+              f"{r['projects_with_failure']}/{r['projects_with_resource']} projects had a failure")
+    print(f"wrote {RESULTS / 'baseline.md'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

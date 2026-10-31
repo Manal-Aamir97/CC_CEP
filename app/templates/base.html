@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cloud Setup{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='console.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Cloud Setup</span>
+    <span class="topbar-region">{% block topbar %}{% endblock %}</span>
+  </header>
+  {% if preview %}
+  <div class="preview-banner" role="note">
+    Researcher preview. Validator results are shown here only. Participants never see this page.
+  </div>
+  {% endif %}
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

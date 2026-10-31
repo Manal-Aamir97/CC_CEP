@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% set p = task.display %}
+{% block title %}{{ page.heading }} - Cloud Setup{% endblock %}
+{% block topbar %}{{ page.service }}{% endblock %}
+{% block content %}
+<div class="layout{% if assisted %} with-assistant{% endif %}">
+  <div class="main-col">
+    <h1>{{ page.heading }}</h1>
+
+    <section class="task-card" aria-labelledby="task-title">
+      <div class="task-progress">{{ progress }}</div>
+      <h2 id="task-title">{{ p.title }}</h2>
+      <p>{{ p.scenario }}</p>
+      <ol class="requirements">
+        {% for requirement in p.requirements %}<li>{{ requirement.text }}</li>{% endfor %}
+      </ol>
+      {% if p.notes %}<p class="task-notes">{{ p.notes }}</p>{% endif %}
+    </section>
+
+    <form id="config-form" novalidate
+          data-resource="{{ task.resource }}"
+          data-submit-url="{{ submit_url }}"
+          data-events-url="{{ events_url }}"
+          data-draft-key="{{ draft_key }}"
+          data-preview="{{ 'true' if preview else 'false' }}">
+      {% include "forms/" ~ task.resource ~ ".html" %}
+
+      <div class="form-errors" id="form-errors" role="alert" hidden></div>
+      <div class="actions">
+        <button type="submit" class="btn-primary" id="submit-button">{{ page.submit }}</button>
+      </div>
+    </form>
+
+    {% if preview %}
+    <section class="panel researcher" aria-labelledby="result-title">
+      <h2 id="result-title">Validator result (researcher only)</h2>
+      <div id="preview-result"><p class="hint">Submit the form to score it. Nothing is recorded in preview.</p></div>
+      <details>
+        <summary>Configuration JSON (updates on every change)</summary>
+        <pre id="json-preview"></pre>
+      </details>
+      <button type="button" class="btn-secondary" id="reset-form">Reset to the starting form</button>
+    </section>
+    {% endif %}
+  </div>
+  {% if assisted %}
+  <aside class="assistant" id="assistant-panel" data-ask-url="{{ ask_url }}" aria-labelledby="assistant-title">
+    <h2 id="assistant-title">Assistant</h2>
+    <p class="hint">Ask anything about this task, even what a word means. You decide what to change. Please do not type personal details.</p>
+    <div class="messages" data-messages aria-live="polite">
+      {% for question, answer in chat_history %}
+      <div class="msg msg-user"><div class="msg-who">You</div><div class="msg-body">{{ question }}</div></div>
+      <div class="msg msg-assistant"><div class="msg-who">Assistant</div><div class="msg-body">{{ answer }}</div></div>
+      {% endfor %}
+    </div>
+    <form class="ask" id="ask-form">
+      <label class="visually-hidden" for="ask-box">Your question</label>
+      <textarea id="ask-box" rows="3" maxlength="1000" placeholder="Type a question"></textarea>
+      <button type="submit" class="btn-primary">Ask</button>
+    </form>
+  </aside>
+  {% endif %}
+</div>
+
+<script id="initial-config" type="application/json">{{ task.initial_config | tojson }}</script>
+<script id="form-options" type="application/json">{{ js_options | tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='form.js') }}"></script>
+<script src="{{ url_for('static', filename='events.js') }}"></script>
+{% if assisted %}<script src="{{ url_for('static', filename='markdown.js') }}"></script>
+<script src="{{ url_for('static', filename='assistant.js') }}"></script>{% endif %}
+{% endblock %}

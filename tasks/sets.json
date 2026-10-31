@@ -1,0 +1,14 @@
+{
+  "sets": {
+    "A": ["A1", "A2", "A3"],
+    "B": ["B1", "B2", "B3"]
+  },
+  "practice": "P0",
+  "within_set_order": "Tasks in a set are always shown in the order listed (web server, storage bucket, database), so each task sits in the same position in both conditions.",
+  "counterbalancing_groups": {
+    "1": [{"set": "A", "condition": "unassisted"}, {"set": "B", "condition": "assisted"}],
+    "2": [{"set": "B", "condition": "unassisted"}, {"set": "A", "condition": "assisted"}],
+    "3": [{"set": "A", "condition": "assisted"}, {"set": "B", "condition": "unassisted"}],
+    "4": [{"set": "B", "condition": "assisted"}, {"set": "A", "condition": "unassisted"}]
+  }
+}

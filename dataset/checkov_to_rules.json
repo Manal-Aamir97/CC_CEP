@@ -1,0 +1,65 @@
+{
+  "purpose": "Maps the Checkov checks that Verdet et al. (2025) ran on 401 AWS Terraform projects onto our validator rules, so their October 2022 results can serve as a real-world human baseline.",
+  "source_policies": "aws/csv/policies-aws-final.csv in https://github.com/averdet/master-terraform-sec-adoption",
+  "checked_on": "2026-10-28",
+  "evidence_levels": {
+    "checkov-source": "Check ID, name and resource type read in Checkov's source code (github.com/bridgecrewio/checkov)",
+    "policy-description": "Taken from Verdet et al.'s policy file; baseline.py prints the description so it can be confirmed after download"
+  },
+  "policy_descriptions_confirmed": {
+    "on": "2026-10-28",
+    "by": "python -m dataset.baseline --show-policies against policies-aws-final.csv at commit 4fd6c747c7fb9d8d4fb2734f4e4da423e128f17d",
+    "result": "All six policy-description mappings match their rule.",
+    "quirks_without_effect": [
+      "Row POL48 (an SQS queue CMK policy) lists CKV_AWS_3 in its Checkov column; results.csv counts by Checkov ID, and CKV_AWS_3 is the EBS check in Checkov's source.",
+      "CKV_AWS_16 carries tfsec's 'RDS Cluster' wording in their file; Checkov's source shows it checks aws_db_instance."
+    ]
+  },
+  "rules": {
+    "WS-01": {
+      "checks": {"CKV_AWS_24": "checkov-source"},
+      "note": "Security group allows port 22 from 0.0.0.0/0 (SecurityGroupUnrestrictedIngress22)."
+    },
+    "WS-06": {
+      "checks": {"CKV_AWS_3": "checkov-source", "CKV_AWS_8": "policy-description"},
+      "note": "Related, not identical: CKV_AWS_3 covers stand-alone aws_ebs_volume resources and CKV_AWS_8 launch-configuration volumes; our rule covers a server's root disk."
+    },
+    "ST-01": {
+      "checks": {"CKV_AWS_53": "policy-description", "CKV_AWS_54": "checkov-source",
+                 "CKV_AWS_55": "policy-description", "CKV2_AWS_6": "policy-description"},
+      "note": "Block Public Access switches and presence of a public access block. Their scan did not include restrict_public_buckets (CKV_AWS_56)."
+    },
+    "ST-02": {
+      "checks": {"CKV_AWS_19": "policy-description"},
+      "note": "S3 server-side encryption at rest (any key type, like our rule)."
+    },
+    "ST-04": {
+      "checks": {"CKV_AWS_18": "policy-description"},
+      "note": "S3 server access logging enabled (Checkov does not check which target bucket)."
+    },
+    "DB-01": {
+      "checks": {"CKV_AWS_17": "checkov-source"},
+      "note": "aws_db_instance / aws_rds_cluster_instance not publicly accessible."
+    },
+    "DB-04": {
+      "checks": {"CKV_AWS_16": "checkov-source"},
+      "note": "aws_db_instance storage encrypted."
+    }
+  },
+  "excluded_checks": {
+    "CKV_AWS_260": "Port 80 open to 0.0.0.0/0 (checked in Checkov's source). Our web-server tasks require HTTP to be open (WS-04), so counting it as an error would inflate the human error rate.",
+    "CKV_AWS_181": "Requires a customer-managed KMS key; stricter than ST-02.",
+    "CKV_AWS_189": "Requires a customer-managed KMS key for EBS; stricter than WS-06.",
+    "CKV2_AWS_2": "Not verified against Checkov's source; left out rather than guessed."
+  },
+  "not_covered": {
+    "WS-02": "needs the task's admin address",
+    "WS-03": "RDP check (CKV_AWS_25) was not in their scan",
+    "WS-04": "functional requirement of our tasks",
+    "WS-05": "functional requirement of our tasks",
+    "ST-03": "S3 versioning check was not in their scan",
+    "DB-02": "no database-port check in their scan",
+    "DB-03": "needs the task's application address",
+    "DB-05": "backup retention check was not in their scan"
+  }
+}

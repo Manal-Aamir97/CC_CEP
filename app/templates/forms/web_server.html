@@ -1,0 +1,54 @@
+<section class="panel">
+  <h2>Name</h2>
+  <label class="field">
+    <span>Server name</span>
+    <input type="text" data-path="name" data-kind="text" autocomplete="off" spellcheck="false">
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Operating system</h2>
+  <p class="hint">The basic software the server runs on.</p>
+  <label class="field">
+    <span>Operating system</span>
+    <select data-path="os" data-kind="select">
+      {% for value, label in options.os %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Server size</h2>
+  <label class="field">
+    <span>Size</span>
+    <select data-path="instance_type" data-kind="select">
+      {% for value, label in options.instance_type %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Connections</h2>
+  <label class="check">
+    <input type="checkbox" data-path="public_ip" data-kind="bool">
+    <span>Give this server a public internet address</span>
+  </label>
+  <p class="hint">Without a public internet address, the server cannot be reached from the internet at all.</p>
+
+  <h3>Who can connect to this server</h3>
+  <p class="hint">Each row allows one kind of connection. Anything without a row is not allowed.</p>
+  <table class="rules" data-ingress="web_server">
+    <thead><tr><th scope="col">What it is for</th><th scope="col">Who can connect</th><th scope="col"><span class="visually-hidden">Remove</span></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button type="button" class="btn-secondary" data-add-rule>Add a row</button>
+</section>
+
+<section class="panel">
+  <h2>Disk encryption</h2>
+  <p class="hint">The disk is where the server keeps its files. Encryption scrambles them so that they cannot be read without a key.</p>
+  <label class="check">
+    <input type="checkbox" data-path="disk_encryption" data-kind="bool">
+    <span>Encrypt the server's disk</span>
+  </label>
+</section>

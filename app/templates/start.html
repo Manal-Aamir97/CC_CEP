@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Start session - Cloud Setup{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Start a participant session</h1>
+  <p class="hint">For the researcher. Fill this in, then hand the computer to the participant.</p>
+  <p class="researcher-note" role="note">{{ llm_note }}</p>
+
+  {% if active %}
+  <div class="panel">
+    <p>A session is already in progress for <strong>{{ active }}</strong>.</p>
+    <a class="btn-secondary" href="{{ url_for('next_step') }}">Continue that session</a>
+  </div>
+  {% endif %}
+
+  <form class="panel" method="post" action="{{ url_for('start_session') }}">
+    {% if error %}<p class="form-errors" role="alert">{{ error }}</p>{% endif %}
+    <label class="field">
+      <span>Participant ID</span>
+      <input type="text" name="participant_id" placeholder="P01" pattern="[Pp][0-9]{2,3}" required autocomplete="off">
+    </label>
+    <label class="field">
+      <span>Counterbalancing group</span>
+      <select name="group" required>
+        <option value="" selected disabled>Select...</option>
+        {% for group, description in groups %}
+        <option value="{{ group }}">Group {{ group }}: {{ description }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="actions">
+      <button type="submit" class="btn-primary">Start session</button>
+    </div>
+  </form>
+
+  {% if preview_enabled %}
+  <p><a href="{{ url_for('preview_index') }}">Researcher preview of all tasks</a></p>
+  {% endif %}
+</div>
+{% endblock %}

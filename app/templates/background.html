@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}About you - Cloud Setup{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Two questions about you</h1>
+  <form class="panel" method="post" action="{{ url_for('background') }}">
+    {% if error %}<p class="form-errors" role="alert">{{ error }}</p>{% endif %}
+    <label class="field">
+      <span>Which year of study are you in?</span>
+      <select name="year_of_study" required>
+        <option value="" selected disabled>Select...</option>
+        {% for value, label in years %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <fieldset class="choices">
+      <legend>Have you ever set up servers or online storage on a cloud service such as AWS, Azure or Google Cloud?</legend>
+      {% for value, label in levels %}
+      <label class="check"><input type="radio" name="cloud_experience" value="{{ value }}" required><span>{{ value }}. {{ label }}</span></label>
+      {% endfor %}
+    </fieldset>
+    <div class="actions"><button type="submit" class="btn-primary">Continue</button></div>
+  </form>
+</div>
+{% endblock %}

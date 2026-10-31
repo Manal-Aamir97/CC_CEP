@@ -1,0 +1,103 @@
+{
+  "task_id": "A3",
+  "set": "A",
+  "pair": 3,
+  "order_in_set": 3,
+  "scored": true,
+  "resource": "database",
+  "participant": {
+    "title": "Orders database for Paperleaf Books",
+    "scenario": "Paperleaf Books runs an online bookshop. Its application server needs a PostgreSQL database to store customer orders. You look after the shop's IT. Create the database. The form has been pre-filled with the settings from the template the developers used for their test database.",
+    "requirements": [
+      {"id": "R1", "text": "The database must not be reachable from the internet: it must not be publicly accessible."},
+      {"id": "R2", "text": "Only the shop's application server, at private IP address 10.0.1.25, may connect to the database on port 5432."},
+      {"id": "R3", "text": "The database storage must be encrypted."},
+      {"id": "R4", "text": "Automatic backups must be turned on and kept for at least 7 days."}
+    ],
+    "notes": "Any instance class is acceptable."
+  },
+  "display": {
+    "title": "Orders database for Paperleaf Books",
+    "scenario": "Paperleaf Books runs an online bookshop. A database is where a system keeps its records. The shop's main computer, called its application server, needs a database to store customer orders. You look after the shop's computers. Set up the database using the form below. The form is already filled in with the settings the developers used for their test database.",
+    "requirements": [
+      {
+        "id": "R1",
+        "text": "The database must not be reachable from the internet."
+      },
+      {
+        "id": "R2",
+        "text": "Only the shop's main computer may connect to the database. That computer's private address is 10.0.1.25."
+      },
+      {
+        "id": "R3",
+        "text": "The database's stored data must be encrypted (scrambled so that it cannot be read without a key)."
+      },
+      {
+        "id": "R4",
+        "text": "Automatic backups must be turned on and kept for at least 7 days."
+      }
+    ],
+    "notes": "Any database size is fine."
+  },
+  "scoring": {
+    "rules": ["DB-01", "DB-02", "DB-03", "DB-04", "DB-05"],
+    "params": {"app_cidr": "10.0.1.25/32", "min_backup_days": 7},
+    "requirement_map": {
+      "R1": ["DB-01"],
+      "R2": ["DB-02", "DB-03"],
+      "R3": ["DB-04"],
+      "R4": ["DB-05"]
+    }
+  },
+  "initial_config": {
+    "resource": "database",
+    "identifier": "paperleaf-orders-db",
+    "engine": "postgres-16",
+    "instance_class": "db.t3.micro",
+    "port": 5432,
+    "publicly_accessible": true,
+    "ingress": [
+      {"port": 5432, "protocol": "tcp", "source": ""}
+    ],
+    "storage_encrypted": true,
+    "backup_retention_days": 0
+  },
+  "design": {
+    "traps": [
+      {
+        "id": "T1",
+        "path": "publicly_accessible",
+        "value": true,
+        "rule": "DB-01",
+        "basis": "The test template had public access switched on so developers could connect from outside the network. The real RDS console defaults this to No, so the trap comes from the template, not from the console; Security Hub rates RDS.2 Critical."
+      },
+      {
+        "id": "T2",
+        "path": "backup_retention_days",
+        "value": 0,
+        "rule": "DB-05",
+        "basis": "The test template set backup retention to 0 days to save cost. In RDS a retention period of 0 switches automated backups off (Security Hub RDS.11 expects at least 7 days)."
+      }
+    ],
+    "decision_points": [
+      {"path": "ingress[port=5432].source", "rule": "DB-03", "options": "free text (CIDR)"}
+    ],
+    "secure_defaults": [
+      {"path": "storage_encrypted", "rule": "DB-04"}
+    ],
+    "unscored_fields": ["identifier", "engine", "instance_class", "port"]
+  },
+  "reference_solution": {
+    "resource": "database",
+    "identifier": "paperleaf-orders-db",
+    "engine": "postgres-16",
+    "instance_class": "db.t3.micro",
+    "port": 5432,
+    "publicly_accessible": false,
+    "ingress": [
+      {"port": 5432, "protocol": "tcp", "source": "10.0.1.25/32"}
+    ],
+    "storage_encrypted": true,
+    "backup_retention_days": 7
+  }
+}

@@ -1,0 +1,171 @@
+%===========================================================
+% 3. METHODOLOGY  (draft, generated from the project repository on 2026-10-28)
+% Paste after the Literature Review in the Overleaf project (cas-dc template).
+% Needs the new bib entry in section3_refs.bib (verdet2025); the other keys are the ones
+% already used in the Introduction and Literature Review.
+% Placeholders to fill: [NUMBER OF PARTICIPANTS], dates of the study.
+%===========================================================
+
+\section{Methodology}
+
+\subsection{Research Design}
+
+The study uses a within-subjects experiment with two conditions: configuring cloud resources \emph{without} LLM assistance (unassisted) and \emph{with} LLM assistance (assisted). Each participant completes one set of three configuration tasks in each condition. The two task sets, Set~A and Set~B, are constructed as matched pairs of equal difficulty, so that every participant can be compared with themselves. To prevent either the task set or the order of conditions from favouring one condition, participants are allocated to four counterbalancing groups (Table~\ref{tbl:groups}).
+
+The main hypothesis is:
+\begin{quote}
+\textbf{H1:} Participants make fewer security configuration errors in the assisted condition than in the unassisted condition.
+\end{quote}
+
+\begin{table}[width=.9\linewidth,cols=3,pos=h]
+\caption{Counterbalancing groups.}\label{tbl:groups}
+\begin{tabular*}{\tblwidth}{@{} LLL@{} }
+\toprule
+Group & First part & Second part\\
+\midrule
+1 & Set A, unassisted & Set B, assisted\\
+2 & Set B, unassisted & Set A, assisted\\
+3 & Set A, assisted & Set B, unassisted\\
+4 & Set B, assisted & Set A, unassisted\\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\subsection{System Architecture}
+
+The experimental system is a simulated cloud console implemented as a small web application. No resource is deployed to a real cloud provider: each form produces a JSON configuration, which is scored offline. This keeps the study free of cost, removes the risk of exposing real resources, and makes every configuration exactly reproducible. The system consists of five components:
+
+\begin{enumerate}
+    \item a \textbf{form-based console}, which presents each task in plain language and rebuilds the configuration JSON on every change;
+    \item a \textbf{configuration schema}, which fixes the structure of each resource type;
+    \item an \textbf{independent rule-based validator}, which scores submitted configurations;
+    \item an \textbf{LLM assistant panel}, available only in the assisted condition; and
+    \item an \textbf{event logger}, which records every interaction for analysis.
+\end{enumerate}
+
+The configuration JSON is sent to two separate places. The LLM receives it only to give advice, and the validator receives it only to score it. Nothing flows from the LLM to the validator, and the LLM never receives the validator's findings. This separation follows the recommendation in the literature that LLM output should be checked independently rather than treated as an authority \cite{minna2025,sajadi2025}, and it allows the effect of the LLM to be measured without the validator influencing participants.
+
+\subsection{Configuration Tasks}
+
+Six configuration tasks were written, forming three matched pairs (Table~\ref{tbl:tasks}). Each task presents a short scenario for a fictional organisation and four explicit security requirements. The two tasks of a pair use the same resource type, the same requirements, the same scoring rules and the same number of required edits; only the scenario, names and network addresses differ. Public addresses are taken from the ranges reserved for documentation, so no task refers to a real network.
+
+Each task plants two \emph{traps}: insecure values that are already filled in when the form opens, as happens with real console defaults and reused templates. For example, the cloud provider's own instance-launch wizard proposes an SSH rule open to all addresses until the user narrows it. Each task's traps carry the same total weight, so traps are comparable across resource types. Some fields start empty and require an explicit decision, and the remaining fields start with correct values that must not be broken. A short practice task, which is not scored, introduces the form.
+
+Because participants are not assumed to have any cloud knowledge, the task text and the form use plain language. For example, a source of \texttt{0.0.0.0/0} appears as ``Anyone on the internet'', and a rule for port 22 appears as ``Remote login''. Each task therefore has two wordings that ask for the same things: a plain wording that is displayed, and an exact technical wording that is sent only to the LLM. The configuration JSON and the validator's rules are the same under both, and short explanations say what a setting does without indicating which value to choose. Plain labels may make the traps easier to notice in both conditions, so the pilot checks that participants still make enough errors for a difference between conditions to be measurable.
+
+\begin{table*}[width=\textwidth,cols=4,pos=h]
+\caption{Configuration tasks and planted traps.}\label{tbl:tasks}
+\begin{tabular*}{\tblwidth}{@{} LLLL@{} }
+\toprule
+Resource & Set A & Set B & Traps (insecure pre-filled values)\\
+\midrule
+Web server & Crumb \& Co. Bakery & Northfield Community Library & SSH open to 0.0.0.0/0; disk encryption off\\
+Storage bucket & Riverside Physiotherapy Clinic & Westbrook College exam board & 2 of 4 public-access blocks off; access logging off\\
+Database & Paperleaf Books & Harbour Street Gym & Publicly accessible; backup retention 0 days\\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+\subsection{Configuration Schema}
+
+The structure of each resource type (web server, storage bucket and database) is fixed in a JSON Schema (draft 2020-12). The form, the validator, the LLM prompt and the event log all read this structure. A configuration is \emph{draft-valid} when its fields and types match the schema, and \emph{submittable} when no decision field is left empty; the form blocks submission until the configuration is submittable, in both conditions. Two properties that the schema cannot express are checked separately: every network source must be a valid CIDR block, and every database rule must use the database port.
+
+\subsection{Rule-Based Security Validator}
+
+Submitted configurations are scored by a deterministic validator with 15 rules (Table~\ref{tbl:rules}). Each rule inspects one aspect of a configuration and returns pass or fail, a severity and a message. Rule severities are taken from the severity of the closest matching control in AWS Security Hub\footnote{AWS Security Hub CSPM User Guide, control reference for Amazon EC2, Amazon S3 and Amazon RDS (docs.aws.amazon.com/securityhub).}: critical and high controls are weighted 3, medium controls 2 and low controls 1. Where a rule corresponds to a requirement of the CIS AWS Foundations Benchmark\footnote{Center for Internet Security, CIS Amazon Web Services Foundations Benchmark, versions 5.0.0 and 3.0.0, as mapped in the AWS Security Hub CSPM User Guide.}, that requirement is recorded. Four rules have no matching control and are weighted by the researchers. Two of these rules check that the website remains reachable, so that a configuration that blocks everything is not counted as correct. When two rules examine the same field, each mistake is counted only once.
+
+The validator never calls the LLM, never receives the LLM's output and has no network access; this is enforced by an automated test of its imports. Its correctness was verified with unit tests: every task's reference solution passes all of its rules, every task's starting form fails exactly its planted traps and empty decision fields, and 36 hand-built insecure configurations each fail exactly the one rule they target. In addition, six deliberately planted bugs in copies of the validator were all detected by the test suite.
+
+\begin{table*}[width=\textwidth,cols=3,pos=h]
+\caption{Validator rules and weights.}\label{tbl:rules}
+\begin{tabular*}{\tblwidth}{@{} LLL@{} }
+\toprule
+Rule & Mistake detected & Weight\\
+\midrule
+WS-01 & SSH (port 22) open to the internet & 3\\
+WS-02 & SSH allowed from more than the administrator's address, or administrator locked out & 2\\
+WS-03 & RDP (port 3389) open to the internet & 3\\
+WS-04 & Website not reachable over HTTP & 1\\
+WS-05 & Website not reachable over HTTPS & 1\\
+WS-06 & Server disk not encrypted & 2\\
+ST-01 & Bucket public access not fully blocked & 3\\
+ST-02 & Bucket not encrypted at rest & 2\\
+ST-03 & Bucket versioning disabled & 1\\
+ST-04 & Access logging disabled or sent to the wrong bucket & 2\\
+DB-01 & Database publicly accessible & 3\\
+DB-02 & Database port open to the internet & 3\\
+DB-03 & Database reachable from more than the application server, or server cut off & 2\\
+DB-04 & Database storage not encrypted & 2\\
+DB-05 & Automated backups kept fewer than 7 days & 2\\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+\subsection{LLM Assistant}
+
+In the assisted condition, a chat panel beside the form allows the participant to ask questions. The backend does not forward the raw question alone; it builds a structured prompt that contains a fixed system instruction, the exact technical wording of the task, the current configuration JSON, the labels shown on the form and the question:
+
+\begin{verbatim}
+SYSTEM: You are a cloud security assistant. Explain
+risks and recommend changes. Do not claim the
+configuration is secure or insecure as a final verdict.
+<The person has no cloud experience: answer briefly,
+in simple words, using the form's labels.>
+TASK REQUIREMENTS: <technical task text>
+CURRENT CONFIGURATION: <JSON from the form>
+WHAT THE PERSON SEES: <the form's labels>
+USER QUESTION: <participant's question>
+\end{verbatim}
+
+Up to six earlier questions and answers from the same task are included so that follow-up questions can be understood. The technical wording and the JSON are not displayed to the participant, and the answer is displayed with its formatting. Scoring rules, traps, reference solutions and validator findings are never included in the prompt, which is verified by automated tests. A single model, NVIDIA Nemotron 3 Ultra (\texttt{nvidia/nemotron-3-ultra-550b-a55b:free}), accessed through the OpenRouter API, is used for the whole study. It runs with temperature 0, a fixed seed, low reasoning effort and a maximum of 2000 output tokens including reasoning. Fallback to other models is disabled, so a request fails rather than being answered by a different model. The requested model and settings are recorded in every session log, and the model name returned by the provider, the finish reason and the token usage are recorded with every answer. Participants may ask up to 30 questions per task. The consent page tells them that their questions are sent to an outside AI service and asks them not to type personal details. The API key is held on the server and never sent to the browser.
+
+\subsection{Event Logging}
+
+Every session is recorded in append-only JSON-lines files, one per participant and session part. The log contains the participant identifier and group, consent and questionnaire answers, the start of each task, every field change (with the old value, the new value and a snapshot of the configuration), every question to the assistant together with the full prompt and the answer, every rejected submission, and each final submission with the validator's result and the time taken. All measures reported in Section~4 are computed from these logs.
+
+\subsection{Real-World Human Baseline}
+
+To place participants' error rates in context, the study uses the dataset of Verdet et al.\ \cite{verdet2025}, who collected open-source GitHub projects that configure AWS with Terraform between 12~September and 5~October~2022 and scanned them with the Checkov static analyser. Because these configurations were collected before ChatGPT was released (30~November~2022), they can be treated as written by people rather than generated by an LLM. Checkov results are available for 369 projects. Seven of the validator's fifteen rules were mapped onto the checks in this scan, each mapping confirmed against Checkov's source code or the authors' policy descriptions. A check for HTTP open to the internet was excluded because the study's web-server tasks require HTTP to be reachable. These rates were measured by a different tool and are therefore comparable in kind, but not identical in definition, to the validator's scores.
+
+\subsection{Offline Evaluation of the Assistant}
+
+Before the study, the assistant is evaluated on its own, following the approach used in previous LLM misconfiguration studies \cite{wen2026,sajadi2025}. It receives 30 configurations with known planted errors: each task's starting form and four variants of each reference solution with exactly one error. A sample of real human-written configurations from the baseline dataset, converted by hand into the study's schema, is added as a second set. Each configuration is sent with the same fixed review question. Two researchers code whether the advice identifies each validator finding and whether any advice is wrong or harmful. The configuration obtained by applying exactly the model's advice is then scored again. This shows, in Section~5, whether errors in the assisted condition could originate from the advice rather than from the participant.
+
+\subsection{Participants and Procedure}
+
+[NUMBER OF PARTICIPANTS] Software Engineering students will be recruited (the target is 20 to 30). Each session lasts about 40 minutes and follows a fixed protocol:
+\begin{enumerate}
+    \item an information page and consent;
+    \item a background questionnaire (year of study and prior experience of setting up cloud services on a five-point scale);
+    \item an unscored practice task to learn the form;
+    \item the first part and the second part, as assigned by the participant's group, separated by a short break; and
+    \item a post-questionnaire on the perceived helpfulness of the assistant, trust in its advice and confidence in the submitted configurations (five-point scales).
+\end{enumerate}
+Participants are identified only by a code. In both conditions, participants never see the validator's findings during the study, so that the comparison isolates the effect of the assistant. A pilot with two or three students precedes the study to check the wording of the tasks, the equivalence of the two sets and the completeness of the logs; pilot data are not analysed.
+
+\subsection{Metrics}
+
+The measures computed for each participant and condition are summarised in Table~\ref{tbl:metrics}.
+
+\begin{table}[width=.9\linewidth,cols=2,pos=h]
+\caption{Outcome measures.}\label{tbl:metrics}
+\begin{tabular*}{\tblwidth}{@{} LL@{} }
+\toprule
+Measure & Definition\\
+\midrule
+Error count & Number of failed validator rules\\
+Weighted error score & Sum of the weights of failed rules\\
+Task success & No failed rule of weight 3\\
+Completion time & Submission time minus task start time\\
+Corrections & Field changes after the first assistant answer (assisted) or after the first complete draft (unassisted)\\
+Assistant use & Questions asked per task\\
+Advice-induced errors & Failed rules where a participant applied incorrect advice (manual review)\\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\subsection{Statistical Analysis}
+
+For each participant, errors are summed over the three tasks of each condition, and the paired difference (assisted minus unassisted) is analysed. Because error counts from 20 to 30 participants are unlikely to be normally distributed, the Wilcoxon signed-rank test is the primary test; the paired $t$-test is reported alongside it. The Wilcoxon test uses the exact distribution when no differences are tied and the normal approximation with tie and continuity correction otherwise. Effect sizes are reported as the matched-pairs rank-biserial correlation and Cohen's $d_z$, together with the 95\% confidence interval of the mean difference. Tests are two-sided at $\alpha = 0.05$. The same comparison is made for the weighted error score, task success, completion time and corrections.
+
+Secondary analyses break errors down by rule category (network, public access, encryption, backup and recovery, logging and functional requirements). They also compare novices (experience of 1--2) with experienced participants (3--5) and report the Spearman correlation between experience and the paired difference. The equivalence of the task sets (Set~A versus Set~B) and the order effect (first versus second part) are checked. A further analysis is restricted to participants who used the assistant at least once. All statistics are computed with a purpose-written Python module whose results were verified against published reference values.

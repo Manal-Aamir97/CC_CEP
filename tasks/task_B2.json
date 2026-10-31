@@ -1,0 +1,115 @@
+{
+  "task_id": "B2",
+  "set": "B",
+  "pair": 2,
+  "order_in_set": 2,
+  "scored": true,
+  "resource": "storage_bucket",
+  "participant": {
+    "title": "Storage bucket for Westbrook College exam board",
+    "scenario": "Westbrook College's exam board writes exam papers and marking schemes weeks before each exam and wants to keep them in cloud storage. You look after the board's IT. Create the storage bucket westbrook-exam-papers. The form has been pre-filled with the settings copied from the college's old bucket, which hosts its public course website.",
+    "requirements": [
+      {"id": "R1", "text": "The papers must stay secret until the exam. Nobody outside the exam board may read them: block all public access to the bucket."},
+      {"id": "R2", "text": "The papers must be encrypted at rest."},
+      {"id": "R3", "text": "Earlier versions of each paper must be kept, so that a paper deleted or overwritten by mistake can be recovered."},
+      {"id": "R4", "text": "Every request made to the bucket must be logged to the college's existing log bucket, westbrook-access-logs."}
+    ],
+    "notes": "The bucket name and region are already correct."
+  },
+  "display": {
+    "title": "Online storage for Westbrook College exam board",
+    "scenario": "Westbrook College's exam board writes exam papers and marking schemes weeks before each exam and wants to keep them online. You look after the board's computers. Set up a storage space called westbrook-exam-papers using the form below. The form is already filled in with the settings copied from the college's old storage space, which holds its public course website.",
+    "requirements": [
+      {
+        "id": "R1",
+        "text": "The papers must stay secret until the exam. Nobody outside the exam board may read them: block all public access."
+      },
+      {
+        "id": "R2",
+        "text": "The papers must be encrypted (scrambled so that they cannot be read without a key)."
+      },
+      {
+        "id": "R3",
+        "text": "Earlier versions of each paper must be kept, so that a paper deleted or overwritten by mistake can be recovered."
+      },
+      {
+        "id": "R4",
+        "text": "Every time someone uses this storage space, a record must be saved in the college's existing records storage, westbrook-access-logs."
+      }
+    ],
+    "notes": "The storage name and location are already correct."
+  },
+  "scoring": {
+    "rules": ["ST-01", "ST-02", "ST-03", "ST-04"],
+    "params": {"log_bucket": "westbrook-access-logs"},
+    "requirement_map": {
+      "R1": ["ST-01"],
+      "R2": ["ST-02"],
+      "R3": ["ST-03"],
+      "R4": ["ST-04"]
+    }
+  },
+  "initial_config": {
+    "resource": "storage_bucket",
+    "bucket_name": "westbrook-exam-papers",
+    "region": "eu-west-1",
+    "block_public_access": {
+      "block_public_acls": true,
+      "ignore_public_acls": true,
+      "block_public_policy": false,
+      "restrict_public_buckets": false
+    },
+    "encryption": null,
+    "versioning": null,
+    "access_logging": {
+      "enabled": false,
+      "target_bucket": ""
+    }
+  },
+  "design": {
+    "traps": [
+      {
+        "id": "T1",
+        "path": "block_public_access",
+        "value": {
+          "block_public_acls": true,
+          "ignore_public_acls": true,
+          "block_public_policy": false,
+          "restrict_public_buckets": false
+        },
+        "rule": "ST-01",
+        "basis": "The old bucket serves a public website through a public bucket policy, which only works with the two policy-related Block Public Access settings switched off. The real S3 console can copy settings from an existing bucket when a new one is created. Both switches must be turned back on to pass ST-01."
+      },
+      {
+        "id": "T2",
+        "path": "access_logging.enabled",
+        "value": false,
+        "rule": "ST-04",
+        "basis": "Server access logging is off on new S3 buckets until it is switched on (Security Hub S3.9 flags this)."
+      }
+    ],
+    "decision_points": [
+      {"path": "encryption", "rule": "ST-02", "options": ["none", "sse-s3", "sse-kms"]},
+      {"path": "versioning", "rule": "ST-03", "options": ["enabled", "disabled"]}
+    ],
+    "secure_defaults": [],
+    "unscored_fields": ["bucket_name", "region"]
+  },
+  "reference_solution": {
+    "resource": "storage_bucket",
+    "bucket_name": "westbrook-exam-papers",
+    "region": "eu-west-1",
+    "block_public_access": {
+      "block_public_acls": true,
+      "ignore_public_acls": true,
+      "block_public_policy": true,
+      "restrict_public_buckets": true
+    },
+    "encryption": "sse-s3",
+    "versioning": "enabled",
+    "access_logging": {
+      "enabled": true,
+      "target_bucket": "westbrook-access-logs"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+<section class="panel">
+  <h2>Name</h2>
+  <label class="field">
+    <span>Database name</span>
+    <input type="text" data-path="identifier" data-kind="text" autocomplete="off" spellcheck="false">
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Database software</h2>
+  <label class="field">
+    <span>Version</span>
+    <select data-path="engine" data-kind="select">
+      {% for value, label in options.engine %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Database size</h2>
+  <label class="field">
+    <span>Size</span>
+    <select data-path="instance_class" data-kind="select">
+      {% for value, label in options.instance_class %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Connections</h2>
+  <fieldset class="choices" data-path="publicly_accessible" data-kind="bool-radio">
+    <legend>Can the database be reached from the internet?</legend>
+    <label class="check"><input type="radio" name="publicly_accessible" value="true"><span>Yes: it gets a public internet address and can be reached from outside your private network</span></label>
+    <label class="check"><input type="radio" name="publicly_accessible" value="false"><span>No: only computers inside your private network can connect</span></label>
+  </fieldset>
+
+  <h3>Who can connect to this database</h3>
+  <p class="hint">Each row allows one connection. Anything without a row is not allowed.</p>
+  <table class="rules" data-ingress="database">
+    <thead><tr><th scope="col">What it is for</th><th scope="col">Who can connect</th><th scope="col"><span class="visually-hidden">Remove</span></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button type="button" class="btn-secondary" data-add-rule>Add a row</button>
+</section>
+
+<section class="panel">
+  <h2>Encryption</h2>
+  <p class="hint">Encryption scrambles the stored data so that it cannot be read without a key.</p>
+  <label class="check">
+    <input type="checkbox" data-path="storage_encrypted" data-kind="bool">
+    <span>Encrypt the database's stored data</span>
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Backups</h2>
+  <p class="hint">A backup is a saved copy of the data, made automatically every day, so that the data can be restored after a mistake or failure.</p>
+  <label class="field">
+    <span>Keep automatic backups for</span>
+    <select data-path="backup_retention_days" data-kind="int">
+      {% for value, label in options.backup_retention_days %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+</section>

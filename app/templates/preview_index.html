@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Researcher preview - Cloud Setup{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Researcher preview</h1>
+  <p class="hint">Open any task, change the form, and submit to see the validator's verdict. Nothing is recorded.</p>
+  <div class="panel">
+    <table class="plain">
+      <thead><tr><th scope="col">Task</th><th scope="col">Resource</th><th scope="col">Title</th></tr></thead>
+      <tbody>
+        {% for t in tasks %}
+        <tr>
+          <td><a href="{{ url_for('preview_task', task_id=t.task_id) }}">{{ t.task_id }}</a></td>
+          <td>{{ t.resource }}</td>
+          <td>{{ t.participant.title }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+<section class="panel">
+  <h2>Name and location</h2>
+  <label class="field">
+    <span>Storage name</span>
+    <input type="text" data-path="bucket_name" data-kind="text" autocomplete="off" spellcheck="false">
+  </label>
+  <label class="field">
+    <span>Location</span>
+    <select data-path="region" data-kind="select">
+      {% for value, label in options.region %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+</section>
+
+<section class="panel">
+  <h2>Public access</h2>
+  <p class="hint">Public access means that anyone on the internet could read the files. Each of the four settings below closes one way of making files public.</p>
+  <label class="check master">
+    <input type="checkbox" data-bpa-master>
+    <span><strong>Block all public access</strong> (turns on all four settings below)</span>
+  </label>
+  <div class="sub-checks">
+    <label class="check">
+      <input type="checkbox" data-path="block_public_access.block_public_acls" data-kind="bool">
+      <span>Refuse any <em>new</em> sharing setting that would make a file public</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" data-path="block_public_access.ignore_public_acls" data-kind="bool">
+      <span>Ignore <em>every</em> sharing setting that makes a file public</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" data-path="block_public_access.block_public_policy" data-kind="bool">
+      <span>Refuse any <em>new</em> rule for the whole storage space that would make files public</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" data-path="block_public_access.restrict_public_buckets" data-kind="bool">
+      <span>Ignore <em>every</em> rule for the whole storage space that makes files public</span>
+    </label>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Earlier versions of files</h2>
+  <p class="hint">Earlier versions let you recover a file that was changed or deleted.</p>
+  <fieldset class="choices" data-path="versioning" data-kind="radio">
+    <legend>Earlier versions</legend>
+    {% for value, label in options.versioning %}
+    <label class="check"><input type="radio" name="versioning" value="{{ value }}"><span>{{ label }}</span></label>
+    {% endfor %}
+  </fieldset>
+</section>
+
+<section class="panel">
+  <h2>Encryption</h2>
+  <p class="hint">Encryption scrambles the files so that they cannot be read without a key.</p>
+  <fieldset class="choices" data-path="encryption" data-kind="radio">
+    <legend>Encryption type</legend>
+    {% for value, label in options.encryption %}
+    <label class="check"><input type="radio" name="encryption" value="{{ value }}"><span>{{ label }}</span></label>
+    {% endfor %}
+  </fieldset>
+</section>
+
+<section class="panel">
+  <h2>Access records</h2>
+  <p class="hint">Access records note every time someone uses this storage space.</p>
+  <fieldset class="choices" data-path="access_logging.enabled" data-kind="bool-radio">
+    <legend>Access records</legend>
+    <label class="check"><input type="radio" name="access_logging.enabled" value="false"><span>Do not keep records</span></label>
+    <label class="check"><input type="radio" name="access_logging.enabled" value="true"><span>Keep records</span></label>
+  </fieldset>
+  <label class="field">
+    <span>Storage space to save the records in</span>
+    <input type="text" data-path="access_logging.target_bucket" data-kind="text" data-logging-target
+           placeholder="storage name" autocomplete="off" spellcheck="false">
+  </label>
+</section>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Before we start - Cloud Setup{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>Before we start</h1>
+  <div class="panel">
+    <p>Thank you for helping with this study. It looks at how people choose settings when they set up online services such as websites and online storage. You do not need any experience. This is a practice website: nothing you do creates anything real.</p>
+    <ul>
+      <li>It takes about 40 minutes: a short practice task, then six tasks in two parts. In one of the parts, an AI assistant is available.</li>
+      <li>We record what you change in the forms, the questions you ask the assistant and its answers, how long each task takes, and your answers to two short questionnaires.</li>
+      <li>In the part with the assistant, your questions and the form's settings are sent to an outside AI service (OpenRouter) to get an answer, and that service may keep them. Please do not type personal details in your questions.</li>
+      <li>Your name is not recorded. You are identified only by a participant number.</li>
+      <li>Taking part is voluntary. You can stop at any time without giving a reason. Tell the researcher if you want your data removed.</li>
+      <li>The results are used for a university course project (Manal Aamir and Syed Abdullah Hyder, NED University of Engineering and Technology) and reported only in summary form.</li>
+    </ul>
+    <form method="post" action="{{ url_for('consent') }}">
+      {% if error %}<p class="form-errors" role="alert">{{ error }}</p>{% endif %}
+      <label class="check">
+        <input type="checkbox" name="agree" value="yes">
+        <span>I have read this information and agree to take part.</span>
+      </label>
+      <div class="actions"><button type="submit" class="btn-primary">Continue</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

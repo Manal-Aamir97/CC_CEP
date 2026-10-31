@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Part {{ part }} complete - Cloud Setup{% endblock %}
+{% block content %}
+<div class="narrow">
+  <div class="panel">
+    <h1>Part {{ part }} complete</h1>
+    <p>Thank you. Please tell the researcher that you have reached this page.</p>
+    <form method="post" action="{{ url_for('end_break') }}">
+      <div class="actions"><button type="submit" class="btn-primary">Start the next part</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

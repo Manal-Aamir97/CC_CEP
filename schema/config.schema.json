@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cep-llm-config:schema:config:v1",
+  "title": "Simulated cloud resource configuration (v1)",
+  "description": "The JSON the form builds on every change. The validator scores it, the LLM prompt quotes it, and the event log records it. Draft-valid configs may still hold empty decision values (null or \"\"); the form blocks submission until those are filled.",
+  "type": "object",
+  "required": ["resource"],
+  "properties": {
+    "resource": {"enum": ["web_server", "storage_bucket", "database"]}
+  },
+  "allOf": [
+    {
+      "if": {"required": ["resource"], "properties": {"resource": {"const": "web_server"}}},
+      "then": {"$ref": "#/$defs/web_server"}
+    },
+    {
+      "if": {"required": ["resource"], "properties": {"resource": {"const": "storage_bucket"}}},
+      "then": {"$ref": "#/$defs/storage_bucket"}
+    },
+    {
+      "if": {"required": ["resource"], "properties": {"resource": {"const": "database"}}},
+      "then": {"$ref": "#/$defs/database"}
+    }
+  ],
+  "$defs": {
+    "cidr_or_empty": {
+      "description": "An IPv4 or IPv6 CIDR block such as 203.0.113.25/32 or ::/0, or \"\" while the participant has not filled it in. The form turns a bare address into a /32 (IPv4) or /128 (IPv6). The validator also checks that the block parses.",
+      "type": "string",
+      "pattern": "^$|^[0-9]{1,3}(\\.[0-9]{1,3}){3}/[0-9]{1,2}$|^[0-9A-Fa-f:]*:[0-9A-Fa-f:]*/[0-9]{1,3}$"
+    },
+    "ingress_rule": {
+      "description": "One inbound rule: allow TCP traffic on one port from one source.",
+      "type": "object",
+      "required": ["port", "protocol", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "protocol": {"const": "tcp"},
+        "source": {"$ref": "#/$defs/cidr_or_empty"}
+      }
+    },
+    "web_server": {
+      "description": "EC2-like Linux web server.",
+      "type": "object",
+      "required": ["resource", "name", "instance_type", "os", "ingress", "disk_encryption", "public_ip"],
+      "additionalProperties": false,
+      "properties": {
+        "resource": {"const": "web_server"},
+        "name": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+        "instance_type": {"enum": ["t2.micro", "t2.small", "t3.micro", "t3.small", "t3.medium"]},
+        "os": {"enum": ["ubuntu-22.04", "ubuntu-24.04", "debian-12", "amazon-linux-2023"]},
+        "ingress": {"type": "array", "maxItems": 10, "items": {"$ref": "#/$defs/ingress_rule"}},
+        "disk_encryption": {"type": "boolean"},
+        "public_ip": {"type": "boolean"}
+      }
+    },
+    "storage_bucket": {
+      "description": "S3-like storage bucket.",
+      "type": "object",
+      "required": ["resource", "bucket_name", "region", "block_public_access", "encryption", "versioning", "access_logging"],
+      "additionalProperties": false,
+      "properties": {
+        "resource": {"const": "storage_bucket"},
+        "bucket_name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"},
+        "region": {"enum": ["us-east-1", "eu-west-1", "eu-west-2", "ap-south-1"]},
+        "block_public_access": {
+          "type": "object",
+          "required": ["block_public_acls", "ignore_public_acls", "block_public_policy", "restrict_public_buckets"],
+          "additionalProperties": false,
+          "properties": {
+            "block_public_acls": {"type": "boolean"},
+            "ignore_public_acls": {"type": "boolean"},
+            "block_public_policy": {"type": "boolean"},
+            "restrict_public_buckets": {"type": "boolean"}
+          }
+        },
+        "encryption": {
+          "description": "null until the participant chooses.",
+          "enum": ["none", "sse-s3", "sse-kms", null]
+        },
+        "versioning": {
+          "description": "null until the participant chooses.",
+          "enum": ["enabled", "disabled", null]
+        },
+        "access_logging": {
+          "type": "object",
+          "required": ["enabled", "target_bucket"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "target_bucket": {"type": "string", "pattern": "^$|^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"}
+          }
+        }
+      }
+    },
+    "database": {
+      "description": "RDS-like PostgreSQL database. Every ingress rule must use the database port (checked by the validator, not expressible here).",
+      "type": "object",
+      "required": ["resource", "identifier", "engine", "instance_class", "port", "publicly_accessible", "ingress", "storage_encrypted", "backup_retention_days"],
+      "additionalProperties": false,
+      "properties": {
+        "resource": {"const": "database"},
+        "identifier": {"type": "string", "pattern": "^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$"},
+        "engine": {"enum": ["postgres-15", "postgres-16", "postgres-17"]},
+        "instance_class": {"enum": ["db.t3.micro", "db.t3.small", "db.t4g.micro", "db.t4g.small"]},
+        "port": {"type": "integer", "minimum": 1150, "maximum": 65535},
+        "publicly_accessible": {"type": "boolean"},
+        "ingress": {"type": "array", "maxItems": 10, "items": {"$ref": "#/$defs/ingress_rule"}},
+        "storage_encrypted": {"type": "boolean"},
+        "backup_retention_days": {
+          "description": "0 switches automated backups off; RDS allows 0 to 35.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 35
+        }
+      }
+    }
+  }
+}
