@@ -7,6 +7,9 @@ analysis/results/
 analysis/synthetic_logs/
 analysis/synthetic_results/
 llm/results/
+# Pilot sessions (CEP_LOG_DIR=pilot/logs) and old test runs: never study data
+pilot/
+archive/
 
 # Other people's code fetched for analysis only; not ours to redistribute
 dataset/raw/

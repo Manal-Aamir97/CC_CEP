@@ -9,7 +9,8 @@ The assistant calls NVIDIA Nemotron 3 Ultra through OpenRouter. The real API was
 | `check.py` | `python -m llm.check`: sends one real test question and shows what came back |
 | `offline_cases.py` | 30 planted-error configurations from our tasks, plus the hand-converted real cases |
 | `offline_check.py` | The Step 7 offline check: asks the model about every case, writes answers, a coding sheet and scores |
-| `test_llm.py`, `test_openrouter.py` | Tests (no real network; the second uses a fake OpenRouter server on this computer) |
+| `ai_alone.py` | AI alone: the model fills in each study task by itself; the validator scores its configurations |
+| `test_llm.py`, `test_openrouter.py`, `test_ai_alone.py` | Tests (no real network; `test_openrouter.py` uses a fake OpenRouter server on this computer) |
 
 ## Connect the real model
 
@@ -91,3 +92,19 @@ Each run writes `answers.jsonl` (prompt, answer, model, and the validator's hidd
 5. Run `score` to see errors before and after.
 
 The `auto_hint` column is a keyword guess to speed up coding, never a verdict.
+
+## AI alone (a reference point, not a study condition)
+
+The model completes each of the six study tasks by itself, with no person involved, and the validator scores what it returns. This shows what the fixed model produces on its own, next to participants without and with the assistant. Report it as "AI alone", never as AI-assisted participants.
+
+```bash
+python -m llm.ai_alone run --provider stub
+```
+
+```bash
+python -m llm.ai_alone run --provider openrouter --runs 3
+```
+
+The first is a dry run that echoes the starting form. The model receives the same public task data as the assistant (`study.public_task`: the exact technical task text and the pre-filled starting form) plus the allowed fields and values from the schema, with every description removed. It never receives scoring rules, traps, reference answers or findings, and `test_ai_alone.py` checks this. The run uses the study's fixed model and settings, so repeated runs mainly show how stable its answer is. Runs go one per task before the next round, so a daily limit leaves every task with the same number. Continue a stopped run with `--resume llm/results/<run folder>`.
+
+Each run writes `answers.jsonl` (prompt, answer, model, parsed configuration, validator result) and `summary.md` (errors per task, failure rate per rule, how often the runs agree) in `llm/results/ai_alone-<provider>-<time>/`.

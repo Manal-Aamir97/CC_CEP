@@ -49,7 +49,7 @@ python tasks/check_tasks.py --write-sheet
 ```
 
 ```bash
-python -m unittest validator.test_rules app.test_app llm.test_llm llm.test_openrouter dataset.test_dataset analysis.test_analysis
+python -m unittest validator.test_rules app.test_app llm.test_llm llm.test_openrouter llm.test_ai_alone dataset.test_dataset analysis.test_analysis
 ```
 
 Score one configuration file against a task:
